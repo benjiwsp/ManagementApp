@@ -1,0 +1,26 @@
+﻿<Window x:Class="Management_Application.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MainWindow" Height="651.955" Width="1358.821">
+    <Grid AllowDrop="True">
+        <Button Content="Upload" HorizontalAlignment="Left" Margin="144,522,0,0" VerticalAlignment="Top" Width="469" Click="UploadBtn_Click"/>
+        <Button Content="Clear" HorizontalAlignment="Left" Margin="144,71,0,0" VerticalAlignment="Top" Width="469"/>
+        <Button Content="Exit" HorizontalAlignment="Left" Margin="144,547,0,0" VerticalAlignment="Top" Width="1074" Height="33"/>
+        <Button Content="Download" HorizontalAlignment="Left" Margin="652,522,0,0" VerticalAlignment="Top" Width="566"/>
+        <Button Content="Back" HorizontalAlignment="Left" Margin="652,66,0,0" VerticalAlignment="Top" Width="75" Height="22"/>
+        <Button Content="Next" HorizontalAlignment="Left" Margin="732,66,0,0" VerticalAlignment="Top" Width="75" Height="22"/>
+        <Button Content="Open" HorizontalAlignment="Left" Margin="1143,66,0,0" VerticalAlignment="Top" Width="75"/>
+        <ListBox x:Name="listBoxFiles" HorizontalAlignment="Left" Height="417" Margin="135,100,0,0" VerticalAlignment="Top" Width="469" RenderTransformOrigin="0.5,0.5" AllowDrop="True" DragEnter="listBoxFiles_DragEnter" >
+            <ListBox.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform/>
+                    <SkewTransform AngleX="0.204"/>
+                    <RotateTransform/>
+                    <TranslateTransform X="0.743"/>
+                </TransformGroup>
+            </ListBox.RenderTransform>
+        </ListBox>
+        <WebBrowser HorizontalAlignment="Left" Height="417" Margin="652,100,0,0" VerticalAlignment="Top" Width="566"/>
+        <ComboBox HorizontalAlignment="Left" Margin="812,66,0,0" VerticalAlignment="Top" Width="326"/>
+    </Grid>
+</Window>
