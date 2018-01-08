@@ -31,7 +31,7 @@ namespace Management_Application
         private MySqlConnection myConnection;
         private MySqlCommand myCommand;
         static string bucketNames = "starxbucket";
-        static string keyNames = "testfolder2/testing2.docx";
+        static string keyName = "testfolder2/testing2.docx";
         static string filePaths = @"E:\documents\resignletter.docx";
 
         static IAmazonS3 client;
@@ -116,39 +116,47 @@ namespace Management_Application
         private void UploadBtn_Click(object sender, RoutedEventArgs e)
         {
             string name = ConfigurationManager.AppSettings["connectionString"];
+          //  MessageBox.Show(name);
             //    MessageBox.Show(name);
             string fileName = "";
             string folderName = "";
-
             string fullPath = "";
+            string s3FullPath = "";
             foreach (string file in listBoxFiles.Items)
             {
                 //  uploadList.Add(file);
                 fileName = System.IO.Path.GetFileName(file);
                 folderName = System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(file));
-                keyNames = folderName + "/" + fileName;
-                MessageBox.Show(file);
-                fullPath = file.Replace(@"\\", "/");
+                keyName = folderName + "/" + fileName;
+         //       MessageBox.Show(file);
+                s3FullPath = file.Replace(@"\\", "/");
                 //     MessageBox.Show(file.Replace(@"\", "/"));
                 using (client = new AmazonS3Client(Amazon.RegionEndpoint.APNortheast1))
                 //   using (client = new  AmazonS3Client(Amazon.S3.AmazonS3Client..APN1))
                 {
-                    WritingAnObject(bucketNames, keyNames, fullPath);
+                    WritingAnObject(bucketNames, keyName, s3FullPath);
                     //         Console.WriteLine("Uploading an object");
-
+                    myConnection = new MySqlConnection(name);
+                    myConnection.Open();
+                    myCommand = new MySqlCommand("insert into CustomerFiles values ('','" + folderName + "','" + keyName + "','" + fileName + "')", myConnection);
+                    myCommand.ExecuteNonQuery();
                 }
 
                 //  MessageBox.Show(file + "           " + keyNames);
+           
+         //       MessageBox.Show(folderName);
+         //       MessageBox.Show(keyName);
+         //       MessageBox.Show(fileName);
+                //MessageBox.Show(s3FullPath);
+
             }
             uploadList.Clear();
 
-            MySqlDataReader rdr;
-            myConnection = new MySqlConnection(name);
-            myConnection.Open();
+       //     MySqlDataReader rdr;
 
-            myCommand = new MySqlCommand("insert into CustomerDetails values ('', 'starx','999','3');", myConnection);
-            myCommand.ExecuteNonQuery();
             myConnection.Close();
+
+
             /*
              * //壓縮  
             //己經有確定要壓縮的檔案
