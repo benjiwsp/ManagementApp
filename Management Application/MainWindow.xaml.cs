@@ -16,15 +16,11 @@ using System.IO;
 using System.IO.Compression;
 using MySql.Data.MySqlClient;
 using System.Configuration;
-
 using Amazon.S3;
 using Amazon.S3.Model;
 using Amazon;
 namespace Management_Application
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         ArrayList uploadList = new ArrayList();
@@ -33,8 +29,7 @@ namespace Management_Application
         static string bucketNames = "starxbucket";
         static string keyName = "";
         static string filePaths = "";
-       // static string keyName = "testfolder2/testing2.docx";
-      //  static string filePaths = @"C:\Users\benji\Desktop\test\Capture.JPG";
+        private MySqlDataReader rdr;
         static IAmazonS3 client;
         public MainWindow()
         {
@@ -42,17 +37,44 @@ namespace Management_Application
             listBoxFiles.AllowDrop = true;
             listBoxFiles.Drop += listBoxFiles_DragDrop;
             listBoxFiles.DragEnter += listBoxFiles_DragEnter;
-            //    IAmazonS3 client = Amazon.AWSClientFactory.CreateAmazonS3Client(RegionEndpoint.EUWest1);
-
             string name = ConfigurationManager.AppSettings["connectionString"];
             myConnection = new MySqlConnection(name);
-            //       Console.WriteLine("Press any key to continue...");
-            //     Console.ReadKey();
-
-            //      WritingAnObject(bucketNames, keyNames, filePaths);
-
-
         }
+
+        public void clearUploadList()
+        {
+            listBoxFiles.Items.Clear();
+        }
+
+        private void ClearBtn_Click(object sender, RoutedEventArgs e)
+        {
+            clearUploadList();
+        }
+
+        private void ListFil_Click(object sender, RoutedEventArgs e)
+        {
+            OpenConn();
+            myCommand = new MySqlCommand("Select * from CustomerFiles", myConnection);
+            rdr = myCommand.ExecuteReader();
+            while (rdr.Read())
+            {
+                serverList.Items.Add(rdr["CustomerName"].ToString());
+            }
+            CloseConnn();
+        }
+        private void CloseConnn()
+        {
+            myConnection.Close();
+        }
+        private void OpenConn()
+        {
+            myConnection.Open();
+        }
+
+
+        /*
+         * function to write an object to S3 bucket, reference from aws website.
+         */
         static void WritingAnObject(string bucketName, string keyName, string filePath)
         {
             try
@@ -102,6 +124,9 @@ namespace Management_Application
             }
         }
 
+        /*
+         * allow drag and drop function on listbox, drag the upload *folder* onto the list.
+         */
         private void listBoxFiles_DragDrop(object sender, DragEventArgs e)
         {
             string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
@@ -109,27 +134,31 @@ namespace Management_Application
                 listBoxFiles.Items.Add(file);
         }
 
+        /*
+         *  if item drag into the listbox, add onto the list.
+         */
         private void listBoxFiles_DragEnter(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop)) e.Effects = DragDropEffects.Copy;
         }
 
 
+        /*
+         * Click button to upload all the files in the folders listed. Users must drag the whole folder onto the list
+         * instead of the files itself. folder will be created on the s3bucket, and uploaded path will be store onto
+         * aws RDS. 
+         */
         private void UploadBtn_Click(object sender, RoutedEventArgs e)
         {
-      
-            //  MessageBox.Show(name);
-            //    MessageBox.Show(name);
             string fileName = "";
             string folderName = "";
-            string fullPath = "";
+            //       string fullPath = "";
             string s3FullPath = "";
-            using (client = new AmazonS3Client(Amazon.RegionEndpoint.APNortheast1))
-            {
-                WritingAnObject(bucketNames, keyName, filePaths);
-            }
-         
-            myConnection.Open();
+            /*  using (client = new AmazonS3Client(Amazon.RegionEndpoint.APNortheast1))
+              {
+                  WritingAnObject(bucketNames, keyName, filePaths);
+              }*/
+            OpenConn();
             foreach (string folder in listBoxFiles.Items)
             {
                 foreach (string file in System.IO.Directory.GetFiles(folder))
@@ -140,7 +169,7 @@ namespace Management_Application
                     s3FullPath = file.Replace(@"\\", "/");
                     using (client = new AmazonS3Client(Amazon.RegionEndpoint.APNortheast1))
                     {
-                        MessageBox.Show(bucketNames + "," + keyName + "," + s3FullPath);
+                        //     MessageBox.Show(bucketNames + "," + keyName + "," + s3FullPath);
                         WritingAnObject(bucketNames, keyName, s3FullPath);
                         myCommand = new MySqlCommand("insert into CustomerFiles values ('','" + folderName + "','" + keyName + "','" + fileName + "')", myConnection);
                         myCommand.ExecuteNonQuery();
@@ -148,30 +177,44 @@ namespace Management_Application
                 }
             }
             clearUploadList();
-            // uploadList.Clear();
-            myConnection.Close(); 
+            CloseConnn();
         }
-        public void clearUploadList()
+
+        /*
+         * Download all the files in the selected folder from aws RDS and save it locally.
+         * 
+         * Note: need to figure out a way to read all the files from the *request.key*, 
+         * then set all the keys to the file namem; create a folder locally (check if it already exist).
+         */
+        private void DownloadBtn_Click(object sender, RoutedEventArgs e)
         {
-            listBoxFiles.Items.Clear();
+            string selectedFolder = "";
+            GetObjectRequest request = new GetObjectRequest();
+            request.BucketName = "starxbucket";
+            request.Key = "clara/18-AE-100297.pdf";
+            using (client = new AmazonS3Client(Amazon.RegionEndpoint.APNortheast1))
+            {
+                GetObjectResponse response = client.GetObject(request);
+           
+         //       MessageBox.Show("!");
+
+                using (var dialog = new System.Windows.Forms.FolderBrowserDialog())
+                {
+                    System.Windows.Forms.DialogResult result = dialog.ShowDialog();
+                    selectedFolder = dialog.SelectedPath.ToString();
+                    response.WriteResponseStreamToFile(selectedFolder + "/2.pdf");
+                }
+
+
+            }
+
         }
-
-        private void ClearBtn_Click(object sender, RoutedEventArgs e)
-        {
-            clearUploadList();
-        }
-
-        private void ListFil_Click(object sender, RoutedEventArgs e)
-        {
-            myConnection.Open();
-            myCommand = new MySqlCommand("Select * from CustomerFiles", myConnection);
-            myConnection.Close();
-        }
-
-
     }
 
 }
+
+
+
 
 /*
     * //壓縮  
