@@ -31,9 +31,10 @@ namespace Management_Application
         private MySqlConnection myConnection;
         private MySqlCommand myCommand;
         static string bucketNames = "starxbucket";
-        static string keyName = "testfolder2/testing2.docx";
-        static string filePaths = @"E:\documents\resignletter.docx";
-
+        static string keyName = "";
+        static string filePaths = "";
+       // static string keyName = "testfolder2/testing2.docx";
+      //  static string filePaths = @"C:\Users\benji\Desktop\test\Capture.JPG";
         static IAmazonS3 client;
         public MainWindow()
         {
@@ -41,9 +42,10 @@ namespace Management_Application
             listBoxFiles.AllowDrop = true;
             listBoxFiles.Drop += listBoxFiles_DragDrop;
             listBoxFiles.DragEnter += listBoxFiles_DragEnter;
-            //     IAmazonS3 client = Amazon.AWSClientFactory.CreateAmazonS3Client(RegionEndpoint.EUWest1);
+            //    IAmazonS3 client = Amazon.AWSClientFactory.CreateAmazonS3Client(RegionEndpoint.EUWest1);
 
-
+            string name = ConfigurationManager.AppSettings["connectionString"];
+            myConnection = new MySqlConnection(name);
             //       Console.WriteLine("Press any key to continue...");
             //     Console.ReadKey();
 
@@ -115,125 +117,103 @@ namespace Management_Application
 
         private void UploadBtn_Click(object sender, RoutedEventArgs e)
         {
-            string name = ConfigurationManager.AppSettings["connectionString"];
-          //  MessageBox.Show(name);
+      
+            //  MessageBox.Show(name);
             //    MessageBox.Show(name);
             string fileName = "";
             string folderName = "";
             string fullPath = "";
             string s3FullPath = "";
-            foreach (string file in listBoxFiles.Items)
+            using (client = new AmazonS3Client(Amazon.RegionEndpoint.APNortheast1))
             {
-                //  uploadList.Add(file);
-                fileName = System.IO.Path.GetFileName(file);
-                folderName = System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(file));
-                keyName = folderName + "/" + fileName;
-         //       MessageBox.Show(file);
-                s3FullPath = file.Replace(@"\\", "/");
-                //     MessageBox.Show(file.Replace(@"\", "/"));
-                using (client = new AmazonS3Client(Amazon.RegionEndpoint.APNortheast1))
-                //   using (client = new  AmazonS3Client(Amazon.S3.AmazonS3Client..APN1))
-                {
-                    WritingAnObject(bucketNames, keyName, s3FullPath);
-                    //         Console.WriteLine("Uploading an object");
-                    myConnection = new MySqlConnection(name);
-                    myConnection.Open();
-                    myCommand = new MySqlCommand("insert into CustomerFiles values ('','" + folderName + "','" + keyName + "','" + fileName + "')", myConnection);
-                    myCommand.ExecuteNonQuery();
-                }
-
-                //  MessageBox.Show(file + "           " + keyNames);
-           
-         //       MessageBox.Show(folderName);
-         //       MessageBox.Show(keyName);
-         //       MessageBox.Show(fileName);
-                //MessageBox.Show(s3FullPath);
-
+                WritingAnObject(bucketNames, keyName, filePaths);
             }
-            uploadList.Clear();
-
-       //     MySqlDataReader rdr;
-
-            myConnection.Close();
-
-
-            /*
-             * //壓縮  
-            //己經有確定要壓縮的檔案
-            FileStream sourceFile = File.OpenRead(@"C:\sample.xml");
-            //壓縮後的檔案名稱
-            FileStream destFile = File.Create(@"C:\sample.gz");
-            //開始
-            GZipStream compStream = new GZipStream(destFile, CompressionMode.Compress, true);
-            try
+         
+            myConnection.Open();
+            foreach (string folder in listBoxFiles.Items)
             {
-                int theByte = sourceFile.ReadByte();
-                while (theByte != -1)
+                foreach (string file in System.IO.Directory.GetFiles(folder))
                 {
-                    compStream.WriteByte((byte)theByte);
-                    theByte = sourceFile.ReadByte();
+                    fileName = System.IO.Path.GetFileName(file);
+                    folderName = System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(file));
+                    keyName = folderName + "/" + fileName;
+                    s3FullPath = file.Replace(@"\\", "/");
+                    using (client = new AmazonS3Client(Amazon.RegionEndpoint.APNortheast1))
+                    {
+                        MessageBox.Show(bucketNames + "," + keyName + "," + s3FullPath);
+                        WritingAnObject(bucketNames, keyName, s3FullPath);
+                        myCommand = new MySqlCommand("insert into CustomerFiles values ('','" + folderName + "','" + keyName + "','" + fileName + "')", myConnection);
+                        myCommand.ExecuteNonQuery();
+                    }
                 }
             }
-            finally
-            {
-                compStream.Flush();
-                compStream.Dispose();
-                sourceFile.Flush();
-                sourceFile.Dispose();
-                destFile.Flush();
-                destFile.Dispose();
-            }
-          
-        
-            myCommand = new MySqlCommand ("Select id, Customer from CustomerDetails",myConnection);
-            rdr = myCommand.ExecuteReader();
-          
-                while (rdr.Read())
-                {
-                    MessageBox.Show(rdr["id"].ToString(), rdr["Customer"].ToString());
-                }
-            
-            rdr.Close();
-            myConnection.Close();
-            uploadList.Clear();
+            clearUploadList();
+            // uploadList.Clear();
+            myConnection.Close(); 
+        }
+        public void clearUploadList()
+        {
             listBoxFiles.Items.Clear();
-
-            
-               */
-
         }
 
-        //解壓縮
-        protected void Decompress()
+        private void ClearBtn_Click(object sender, RoutedEventArgs e)
         {
-            //被壓縮後的檔案
-            FileStream sourceFile = File.OpenRead(@"C:\sample.gz");
-            //解壓縮後的檔案
-            FileStream destFile = File.Create(@"C:\Unsample.xml");
+            clearUploadList();
+        }
 
-            //開始
-            GZipStream compStream = new GZipStream(sourceFile, CompressionMode.Decompress, true);
-            try
-            {
-                int theByte = compStream.ReadByte();
-                while (theByte != -1)
-                {
-                    destFile.WriteByte((byte)theByte);
-                    theByte = compStream.ReadByte();
-                }
-            }
-            finally
-            {
-                compStream.Flush();
-                compStream.Dispose();
-                sourceFile.Flush();
-                sourceFile.Dispose();
-                destFile.Flush();
-                destFile.Dispose();
-            }
+        private void ListFil_Click(object sender, RoutedEventArgs e)
+        {
+            myConnection.Open();
+            myCommand = new MySqlCommand("Select * from CustomerFiles", myConnection);
+            myConnection.Close();
         }
 
 
     }
 
 }
+
+/*
+    * //壓縮  
+   //己經有確定要壓縮的檔案
+   FileStream sourceFile = File.OpenRead(@"C:\sample.xml");
+   //壓縮後的檔案名稱
+   FileStream destFile = File.Create(@"C:\sample.gz");
+   //開始
+   GZipStream compStream = new GZipStream(destFile, CompressionMode.Compress, true);
+   try
+   {
+       int theByte = sourceFile.ReadByte();
+       while (theByte != -1)
+       {
+           compStream.WriteByte((byte)theByte);
+           theByte = sourceFile.ReadByte();
+       }
+   }
+   finally
+   {
+       compStream.Flush();
+       compStream.Dispose();
+       sourceFile.Flush();
+       sourceFile.Dispose();
+       destFile.Flush();
+       destFile.Dispose();
+   }
+          
+        
+   myCommand = new MySqlCommand ("Select id, Customer from CustomerDetails",myConnection);
+   rdr = myCommand.ExecuteReader();
+          
+       while (rdr.Read())
+       {
+           MessageBox.Show(rdr["id"].ToString(), rdr["Customer"].ToString());
+       }
+            
+   rdr.Close();
+   myConnection.Close();
+   uploadList.Clear();
+   listBoxFiles.Items.Clear();
+
+            
+      */
+
